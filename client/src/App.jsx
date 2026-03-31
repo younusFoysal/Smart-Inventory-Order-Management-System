@@ -6,6 +6,7 @@ import DashboardLayout from "./layouts/DashboardLayout";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
+import Categories from "./pages/Categories";
 
 function App() {
   return (
@@ -26,7 +27,7 @@ function App() {
             }
           >
             <Route path="/dashboard" element={<Dashboard />} />
-            {/* Phase 3+ routes will be added here */}
+            <Route path="/categories" element={<Categories />} />
           </Route>
 
           {/* Redirects */}
