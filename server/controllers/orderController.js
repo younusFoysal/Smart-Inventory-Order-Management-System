@@ -1,5 +1,6 @@
 const Order = require("../models/Order");
 const Product = require("../models/Product");
+const RestockQueue = require("../models/RestockQueue");
 
 // Valid status transitions
 const validTransitions = {
@@ -77,12 +78,33 @@ exports.createOrder = async (req, res) => {
       0
     );
 
-    // Deduct stock
+    // Deduct stock and check restock threshold
     for (const item of orderItems) {
       const product = productMap[item.product.toString()];
       product.stockQuantity -= item.quantity;
       product.status = product.stockQuantity <= 0 ? "Out of Stock" : "Active";
       await product.save();
+
+      // Auto-add to restock queue if stock falls below threshold
+      if (product.stockQuantity <= product.minStockThreshold) {
+        const existing = await RestockQueue.findOne({
+          product: product._id,
+          resolved: false,
+        });
+        if (!existing) {
+          await RestockQueue.create({
+            product: product._id,
+            currentStock: product.stockQuantity,
+            threshold: product.minStockThreshold,
+            priority: RestockQueue.calcPriority(product.stockQuantity, product.minStockThreshold),
+            user: req.user._id,
+          });
+        } else {
+          existing.currentStock = product.stockQuantity;
+          existing.priority = RestockQueue.calcPriority(product.stockQuantity, product.minStockThreshold);
+          await existing.save();
+        }
+      }
     }
 
     // Create order

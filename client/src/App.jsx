@@ -11,6 +11,7 @@ import Products from "./pages/Products";
 import Orders from "./pages/Orders";
 import CreateOrder from "./pages/CreateOrder";
 import OrderDetail from "./pages/OrderDetail";
+import RestockQueue from "./pages/RestockQueue";
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
             <Route path="/orders" element={<Orders />} />
             <Route path="/orders/create" element={<CreateOrder />} />
             <Route path="/orders/:id" element={<OrderDetail />} />
+            <Route path="/restock" element={<RestockQueue />} />
           </Route>
 
           {/* Redirects */}
