@@ -1,6 +1,7 @@
 const Order = require("../models/Order");
 const Product = require("../models/Product");
 const RestockQueue = require("../models/RestockQueue");
+const logActivity = require("../utils/logActivity");
 
 // Valid status transitions
 const validTransitions = {
@@ -115,6 +116,8 @@ exports.createOrder = async (req, res) => {
       user: req.user._id,
     });
 
+    logActivity(`Order ${order.orderNumber} created for ${customerName.trim()}`, "order", req.user._id);
+
     res.status(201).json(order);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -204,6 +207,12 @@ exports.updateOrderStatus = async (req, res) => {
 
     order.status = status;
     await order.save();
+
+    if (status === "Cancelled") {
+      logActivity(`Order ${order.orderNumber} cancelled`, "order", req.user._id);
+    } else {
+      logActivity(`Order ${order.orderNumber} updated to ${status}`, "order", req.user._id);
+    }
 
     res.json(order);
   } catch (error) {

@@ -1,5 +1,6 @@
 const Product = require("../models/Product");
 const Category = require("../models/Category");
+const logActivity = require("../utils/logActivity");
 
 // @desc    Create a product
 // @route   POST /api/products
@@ -30,6 +31,9 @@ exports.createProduct = async (req, res) => {
     });
 
     const populated = await product.populate("category", "name");
+
+    logActivity(`Product "${product.name}" created`, "product", req.user._id);
+
     res.status(201).json(populated);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -115,6 +119,9 @@ exports.updateProduct = async (req, res) => {
 
     await product.save();
     const populated = await product.populate("category", "name");
+
+    logActivity(`Product "${product.name}" updated`, "product", req.user._id);
+
     res.json(populated);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -134,8 +141,10 @@ exports.deleteProduct = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    // Will add pending order check in Phase 5
     await product.deleteOne();
+
+    logActivity(`Product "${product.name}" deleted`, "product", req.user._id);
+
     res.json({ message: "Product deleted" });
   } catch (error) {
     res.status(500).json({ message: error.message });

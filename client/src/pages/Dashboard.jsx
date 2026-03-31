@@ -1,3 +1,5 @@
+import ActivityLog from "../components/ActivityLog";
+
 const Dashboard = () => {
   return (
     <div>
@@ -15,10 +17,8 @@ const Dashboard = () => {
           )
         )}
       </div>
-      <div className="mt-8 bg-white rounded-xl border border-gray-200 p-6">
-        <p className="text-gray-500 text-center py-8">
-          Dashboard stats will be populated in Phase 8.
-        </p>
+      <div className="mt-8">
+        <ActivityLog />
       </div>
     </div>
   );

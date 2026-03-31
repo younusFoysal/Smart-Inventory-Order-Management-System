@@ -1,5 +1,6 @@
 const RestockQueue = require("../models/RestockQueue");
 const Product = require("../models/Product");
+const logActivity = require("../utils/logActivity");
 
 // @desc    Get unresolved restock queue items
 // @route   GET /api/restock
@@ -51,6 +52,8 @@ exports.restockProduct = async (req, res) => {
     // Mark queue item as resolved
     queueItem.resolved = true;
     await queueItem.save();
+
+    logActivity(`Restocked "${product.name}" with ${quantity} units`, "restock", req.user._id);
 
     res.json({
       message: `Restocked "${product.name}" with ${quantity} units. New stock: ${product.stockQuantity}`,
