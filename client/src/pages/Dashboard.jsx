@@ -1,29 +1,32 @@
 import { useState, useEffect } from "react";
 import { getDashboardStats } from "../services/dashboardService";
 import ActivityLog from "../components/ActivityLog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
-  HiOutlineShoppingCart,
-  HiOutlineClock,
-  HiOutlineCheckCircle,
-  HiOutlineExclamationCircle,
-  HiOutlineCurrencyDollar,
-} from "react-icons/hi";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { DashboardSkeleton } from "@/components/ui/skeleton";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+  ShoppingCart,
+  Clock,
+  CheckCircle2,
+  AlertTriangle,
+  DollarSign,
+} from "lucide-react";
+import Chart from "react-apexcharts";
 
 const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchData = async () => {
       try {
         const data = await getDashboardStats();
         setStats(data);
@@ -33,194 +36,181 @@ const Dashboard = () => {
         setLoading(false);
       }
     };
-    fetch();
+    fetchData();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
-      </div>
-    );
-  }
-
+  if (loading) return <DashboardSkeleton />;
   if (!stats) return null;
 
   const statCards = [
     {
-      title: "Total Orders Today",
+      title: "Orders Today",
       value: stats.totalOrdersToday,
-      icon: HiOutlineShoppingCart,
-      color: "text-indigo-600 bg-indigo-50",
+      icon: ShoppingCart,
+      color: "text-blue-600 bg-blue-100",
     },
     {
-      title: "Pending Orders",
+      title: "Pending",
       value: stats.pendingOrders,
-      icon: HiOutlineClock,
-      color: "text-yellow-600 bg-yellow-50",
+      icon: Clock,
+      color: "text-amber-600 bg-amber-100",
     },
     {
-      title: "Completed Orders",
+      title: "Completed",
       value: stats.completedOrders,
-      icon: HiOutlineCheckCircle,
-      color: "text-green-600 bg-green-50",
+      icon: CheckCircle2,
+      color: "text-emerald-600 bg-emerald-100",
     },
     {
-      title: "Low Stock Items",
+      title: "Low Stock",
       value: stats.lowStockItems,
-      icon: HiOutlineExclamationCircle,
-      color: "text-red-600 bg-red-50",
+      icon: AlertTriangle,
+      color: "text-red-600 bg-red-100",
     },
   ];
 
-  const chartData = stats.chartData.map((d) => ({
-    ...d,
-    label: new Date(d.date + "T00:00:00").toLocaleDateString("en-US", {
+  const chartLabels = stats.chartData.map((d) =>
+    new Date(d.date + "T00:00:00").toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
-    }),
-  }));
+    })
+  );
+
+  const chartOptions = {
+    chart: { type: "bar", toolbar: { show: false }, fontFamily: "inherit" },
+    plotOptions: { bar: { borderRadius: 6, columnWidth: "50%" } },
+    colors: ["hsl(221.2 83.2% 53.3%)"],
+    dataLabels: { enabled: false },
+    xaxis: { categories: chartLabels, labels: { style: { fontSize: "12px" } } },
+    yaxis: { labels: { style: { fontSize: "12px" } }, forceNiceScale: true },
+    grid: { borderColor: "hsl(var(--border))", strokeDashArray: 4 },
+    tooltip: { theme: "light" },
+  };
+  const chartSeries = [
+    { name: "Orders", data: stats.chartData.map((d) => d.orders) },
+  ];
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Dashboard</h2>
-        <div className="flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1.5 rounded-full text-sm font-medium">
-          <HiOutlineCurrencyDollar className="h-4 w-4" />
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold tracking-tight">Dashboard</h2>
+        <Badge variant="success" className="gap-1.5 px-3 py-1.5 text-sm">
+          <DollarSign className="h-3.5 w-3.5" />
           Revenue Today: ${stats.revenueToday.toLocaleString()}
-        </div>
+        </Badge>
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((card) => {
           const Icon = card.icon;
           return (
-            <div
-              key={card.title}
-              className="bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4"
-            >
-              <div
-                className={`w-11 h-11 rounded-lg flex items-center justify-center shrink-0 ${card.color}`}
-              >
-                <Icon className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">{card.title}</p>
-                <p className="text-2xl font-bold text-gray-800">{card.value}</p>
-              </div>
-            </div>
+            <Card key={card.title}>
+              <CardContent className="flex items-center gap-4 p-5">
+                <div
+                  className={`w-11 h-11 rounded-lg flex items-center justify-center shrink-0 ${card.color}`}
+                >
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">{card.title}</p>
+                  <p className="text-2xl font-bold">{card.value}</p>
+                </div>
+              </CardContent>
+            </Card>
           );
         })}
       </div>
 
       {/* Chart + Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* Orders Chart */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">
-            Orders — Last 7 Days
-          </h3>
-          {chartData.every((d) => d.orders === 0) ? (
-            <p className="text-sm text-gray-400 text-center py-12">
-              No orders in the last 7 days
-            </p>
-          ) : (
-            <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                <Tooltip
-                  formatter={(value, name) =>
-                    name === "revenue"
-                      ? [`$${value.toLocaleString()}`, "Revenue"]
-                      : [value, "Orders"]
-                  }
-                />
-                <Bar dataKey="orders" fill="#6366f1" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-
-        {/* Activity Log */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Orders — Last 7 Days</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {stats.chartData.every((d) => d.orders === 0) ? (
+              <p className="text-sm text-muted-foreground text-center py-12">
+                No orders in the last 7 days
+              </p>
+            ) : (
+              <Chart
+                options={chartOptions}
+                series={chartSeries}
+                type="bar"
+                height={240}
+              />
+            )}
+          </CardContent>
+        </Card>
         <div className="lg:col-span-1">
           <ActivityLog />
         </div>
       </div>
 
       {/* Product Summary */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-sm font-semibold text-gray-700 mb-4">
-          Product Summary
-        </h3>
-        {stats.products.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-6">No products yet</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[500px]">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Product
-                  </th>
-                  <th className="text-left pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Category
-                  </th>
-                  <th className="text-left pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Stock
-                  </th>
-                  <th className="text-left pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm">Product Summary</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {stats.products.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              No products yet
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Product</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Stock</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {stats.products.map((p) => (
-                  <tr
-                    key={p._id}
-                    className="border-b border-gray-100 last:border-0"
-                  >
-                    <td className="py-2.5 text-sm text-gray-800">{p.name}</td>
-                    <td className="py-2.5 text-sm text-gray-500">
+                  <TableRow key={p._id}>
+                    <TableCell className="font-medium">{p.name}</TableCell>
+                    <TableCell className="text-muted-foreground">
                       {p.category?.name || "—"}
-                    </td>
-                    <td className="py-2.5">
+                    </TableCell>
+                    <TableCell>
                       <span
-                        className={`text-sm font-medium ${
+                        className={`font-medium ${
                           p.stockQuantity <= 0
                             ? "text-red-600"
                             : p.stockQuantity <= p.minStockThreshold
                             ? "text-orange-600"
-                            : "text-gray-800"
+                            : ""
                         }`}
                       >
                         {p.stockQuantity}
                       </span>
                       {p.stockQuantity <= p.minStockThreshold &&
                         p.stockQuantity > 0 && (
-                          <span className="ml-1.5 text-xs text-orange-500">Low</span>
+                          <Badge variant="warning" className="ml-2 text-[10px]">
+                            Low
+                          </Badge>
                         )}
-                    </td>
-                    <td className="py-2.5">
-                      <span
-                        className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
-                          p.status === "Active"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          p.status === "Active" ? "success" : "destructive"
+                        }
                       >
                         {p.status}
-                      </span>
-                    </td>
-                  </tr>
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

@@ -1,16 +1,33 @@
 import { useState, useEffect } from "react";
 import { getRestockQueue, restockProduct } from "../services/restockService";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
-  HiOutlineExclamationCircle,
-  HiOutlineRefresh,
-  HiOutlineX,
-} from "react-icons/hi";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { TableSkeleton } from "@/components/ui/skeleton";
+import { RefreshCw, Loader2, PackageCheck } from "lucide-react";
 
-const priorityConfig = {
-  High: "bg-red-100 text-red-700",
-  Medium: "bg-orange-100 text-orange-700",
-  Low: "bg-yellow-100 text-yellow-700",
+const priorityVariant = {
+  High: "destructive",
+  Medium: "warning",
+  Low: "secondary",
 };
 
 const RestockQueue = () => {
@@ -63,177 +80,158 @@ const RestockQueue = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
-      </div>
-    );
-  }
+  if (loading) return <TableSkeleton />;
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Restock Queue</h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <h2 className="text-2xl font-bold tracking-tight">Restock Queue</h2>
+          <p className="text-sm text-muted-foreground mt-1">
             Products that need restocking based on their stock thresholds
           </p>
         </div>
-        <button
-          onClick={() => { setLoading(true); fetchQueue(); }}
-          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            setLoading(true);
+            fetchQueue();
+          }}
         >
-          <HiOutlineRefresh className="h-4 w-4" />
+          <RefreshCw className="h-4 w-4 mr-1.5" />
           Refresh
-        </button>
+        </Button>
       </div>
 
       {items.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <HiOutlineExclamationCircle className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 text-lg">All stocked up!</p>
-          <p className="text-gray-400 text-sm mt-1">
-            No products currently need restocking.
-          </p>
-        </div>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <PackageCheck className="h-12 w-12 text-muted-foreground/40 mb-3" />
+            <p className="text-lg text-muted-foreground">All stocked up!</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              No products currently need restocking.
+            </p>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
-          <table className="w-full min-w-[650px]">
-            <thead>
-              <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Product
-                </th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Current Stock
-                </th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Threshold
-                </th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Priority
-                </th>
-                <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr
-                  key={item._id}
-                  className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition"
-                >
-                  <td className="px-6 py-4">
-                    <p className="text-sm font-medium text-gray-800">
-                      {item.product?.name || "Unknown Product"}
-                    </p>
-                    {item.product?.price != null && (
-                      <p className="text-xs text-gray-500">${item.product.price.toFixed(2)}</p>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`text-sm font-semibold ${
-                        item.currentStock <= 0
-                          ? "text-red-600"
-                          : item.currentStock <= item.threshold / 2
-                          ? "text-orange-600"
-                          : "text-yellow-600"
-                      }`}
-                    >
-                      {item.currentStock}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {item.threshold}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full ${
-                        priorityConfig[item.priority] || "bg-gray-100 text-gray-700"
-                      }`}
-                    >
-                      {item.priority}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-end">
-                      <button
-                        onClick={() => openModal(item)}
-                        className="px-3 py-1.5 text-xs font-medium text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 transition"
+        <Card>
+          <CardContent className="p-0 overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Product</TableHead>
+                  <TableHead>Current Stock</TableHead>
+                  <TableHead>Threshold</TableHead>
+                  <TableHead>Priority</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((item) => (
+                  <TableRow key={item._id}>
+                    <TableCell>
+                      <p className="font-medium">
+                        {item.product?.name || "Unknown Product"}
+                      </p>
+                      {item.product?.price != null && (
+                        <p className="text-xs text-muted-foreground">
+                          ${item.product.price.toFixed(2)}
+                        </p>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <span
+                        className={`font-semibold ${
+                          item.currentStock <= 0
+                            ? "text-red-600"
+                            : item.currentStock <= item.threshold / 2
+                            ? "text-orange-600"
+                            : "text-yellow-600"
+                        }`}
                       >
-                        Restock
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                        {item.currentStock}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {item.threshold}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={priorityVariant[item.priority] || "outline"}>
+                        {item.priority}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-end">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openModal(item)}
+                        >
+                          Restock
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Restock Modal */}
-      {modalItem && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-800">
-                Restock Product
-              </h3>
-              <button
-                onClick={closeModal}
-                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition"
-              >
-                <HiOutlineX className="h-4 w-4" />
-              </button>
-            </div>
+      {/* Restock Dialog */}
+      <Dialog
+        open={!!modalItem}
+        onOpenChange={(open) => !open && closeModal()}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Restock Product</DialogTitle>
+          </DialogHeader>
 
-            <div className="bg-gray-50 rounded-lg p-3 mb-4">
-              <p className="text-sm font-medium text-gray-800">
-                {modalItem.product?.name}
-              </p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Current stock: {modalItem.currentStock} · Threshold: {modalItem.threshold}
-              </p>
-            </div>
-
-            <form onSubmit={handleRestock}>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Quantity to Add
-              </label>
-              <input
-                type="number"
-                min="1"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                required
-                autoFocus
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition mb-4"
-                placeholder="e.g. 50"
-              />
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="flex-1 px-4 py-2.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting || !quantity || Number(quantity) < 1}
-                  className="flex-1 px-4 py-2.5 bg-indigo-600 text-white text-sm rounded-lg font-medium hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {submitting ? "Restocking..." : "Restock"}
-                </button>
+          {modalItem && (
+            <>
+              <div className="rounded-lg bg-muted p-3">
+                <p className="text-sm font-medium">{modalItem.product?.name}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Current stock: {modalItem.currentStock} · Threshold:{" "}
+                  {modalItem.threshold}
+                </p>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+
+              <form onSubmit={handleRestock}>
+                <Label htmlFor="restockQty">Quantity to Add</Label>
+                <Input
+                  id="restockQty"
+                  type="number"
+                  min="1"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  required
+                  autoFocus
+                  placeholder="e.g. 50"
+                  className="mt-1.5 mb-4"
+                />
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={closeModal}>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={submitting || !quantity || Number(quantity) < 1}
+                  >
+                    {submitting && (
+                      <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                    )}
+                    Restock
+                  </Button>
+                </DialogFooter>
+              </form>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

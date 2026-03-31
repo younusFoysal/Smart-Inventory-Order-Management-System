@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { Toaster } from "react-hot-toast";
+import { Toaster } from "sonner";
 import { AuthProvider } from "./context/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
 import DashboardLayout from "./layouts/DashboardLayout";
@@ -17,7 +17,7 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <Toaster position="top-right" />
+        <Toaster position="top-right" richColors closeButton />
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={<Login />} />
@@ -45,8 +45,11 @@ function App() {
           <Route
             path="*"
             element={
-              <div className="min-h-screen flex items-center justify-center">
-                <h1 className="text-2xl text-gray-500">404 — Page Not Found</h1>
+              <div className="min-h-screen flex items-center justify-center bg-background">
+                <div className="text-center">
+                  <h1 className="text-6xl font-bold text-muted-foreground/30">404</h1>
+                  <p className="text-muted-foreground mt-2">Page not found</p>
+                </div>
               </div>
             }
           />

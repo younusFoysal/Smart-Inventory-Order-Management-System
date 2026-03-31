@@ -1,17 +1,14 @@
 import { useState, useEffect } from "react";
 import { getActivityLogs } from "../services/activityService";
-import {
-  HiOutlineShoppingCart,
-  HiOutlineCube,
-  HiOutlineRefresh,
-  HiOutlineTrendingUp,
-} from "react-icons/hi";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ShoppingCart, Package, TrendingUp, RefreshCw } from "lucide-react";
 
 const typeConfig = {
-  order: { icon: HiOutlineShoppingCart, color: "text-blue-500 bg-blue-50" },
-  product: { icon: HiOutlineCube, color: "text-purple-500 bg-purple-50" },
-  stock: { icon: HiOutlineTrendingUp, color: "text-orange-500 bg-orange-50" },
-  restock: { icon: HiOutlineRefresh, color: "text-green-500 bg-green-50" },
+  order: { icon: ShoppingCart, color: "text-blue-600 bg-blue-100" },
+  product: { icon: Package, color: "text-purple-600 bg-purple-100" },
+  stock: { icon: TrendingUp, color: "text-orange-600 bg-orange-100" },
+  restock: { icon: RefreshCw, color: "text-emerald-600 bg-emerald-100" },
 };
 
 function timeAgo(date) {
@@ -35,7 +32,7 @@ const ActivityLog = () => {
         const data = await getActivityLogs();
         setLogs(data);
       } catch {
-        // fail silently — non-critical widget
+        // fail silently
       } finally {
         setLoading(false);
       }
@@ -43,47 +40,51 @@ const ActivityLog = () => {
     fetchLogs();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-sm font-semibold text-gray-700 mb-4">Recent Activity</h3>
-        <div className="flex items-center justify-center py-6">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
-      <h3 className="text-sm font-semibold text-gray-700 mb-4">Recent Activity</h3>
-
-      {logs.length === 0 ? (
-        <p className="text-sm text-gray-400 text-center py-4">No activity yet</p>
-      ) : (
-        <div className="space-y-3">
-          {logs.map((log) => {
-            const config = typeConfig[log.type] || typeConfig.product;
-            const Icon = config.icon;
-            return (
-              <div key={log._id} className="flex items-start gap-3">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${config.color}`}
-                >
-                  <Icon className="h-4 w-4" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-700 leading-snug">{log.action}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {timeAgo(log.createdAt)}
-                  </p>
+    <Card className="h-full">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm">Recent Activity</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="space-y-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <Skeleton className="h-8 w-8 rounded-full shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-3 w-16" />
                 </div>
               </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
+            ))}
+          </div>
+        ) : logs.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-6">No activity yet</p>
+        ) : (
+          <div className="space-y-3">
+            {logs.map((log) => {
+              const config = typeConfig[log.type] || typeConfig.product;
+              const Icon = config.icon;
+              return (
+                <div key={log._id} className="flex items-start gap-3">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${config.color}`}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-foreground leading-snug">{log.action}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {timeAgo(log.createdAt)}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

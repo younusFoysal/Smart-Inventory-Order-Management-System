@@ -1,15 +1,28 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { getOrders } from "../services/orderService";
-import toast from "react-hot-toast";
-import { HiOutlinePlus, HiOutlineEye } from "react-icons/hi";
+import { toast } from "sonner";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { TableSkeleton } from "@/components/ui/skeleton";
+import { Plus, Eye } from "lucide-react";
 
-const statusColors = {
-  Pending: "bg-yellow-100 text-yellow-700",
-  Confirmed: "bg-blue-100 text-blue-700",
-  Shipped: "bg-purple-100 text-purple-700",
-  Delivered: "bg-green-100 text-green-700",
-  Cancelled: "bg-red-100 text-red-700",
+const statusVariant = {
+  Pending: "warning",
+  Confirmed: "info",
+  Shipped: "secondary",
+  Delivered: "success",
+  Cancelled: "destructive",
 };
 
 const Orders = () => {
@@ -38,146 +51,124 @@ const Orders = () => {
     fetchOrders();
   }, [filterStatus, startDate, endDate]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
-      </div>
-    );
-  }
+  if (loading) return <TableSkeleton />;
 
   return (
-    <div>
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Orders</h2>
-        <Link
-          to="/orders/create"
-          className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition"
-        >
-          <HiOutlinePlus className="h-4 w-4" />
-          Create Order
-        </Link>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <h2 className="text-2xl font-bold tracking-tight">Orders</h2>
+        <Button asChild size="sm">
+          <Link to="/orders/create">
+            <Plus className="h-4 w-4 mr-1.5" />
+            Create Order
+          </Link>
+        </Button>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+      <div className="flex flex-col sm:flex-row gap-3">
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
         >
           <option value="">All Statuses</option>
-          {Object.keys(statusColors).map((s) => (
+          {Object.keys(statusVariant).map((s) => (
             <option key={s} value={s}>{s}</option>
           ))}
         </select>
-        <input
+        <Input
           type="date"
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+          className="w-auto"
         />
-        <input
+        <Input
           type="date"
           value={endDate}
           onChange={(e) => setEndDate(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+          className="w-auto"
         />
         {(filterStatus || startDate || endDate) && (
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => { setFilterStatus(""); setStartDate(""); setEndDate(""); }}
-            className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 transition"
           >
             Clear filters
-          </button>
+          </Button>
         )}
       </div>
 
       {/* Table */}
       {orders.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <p className="text-gray-500 text-lg">No orders found</p>
-          <p className="text-gray-400 text-sm mt-1">
-            {filterStatus || startDate || endDate
-              ? "Try adjusting your filters."
-              : "Create your first order to get started."}
-          </p>
-        </div>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <p className="text-lg text-muted-foreground">No orders found</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {filterStatus || startDate || endDate
+                ? "Try adjusting your filters."
+                : "Create your first order to get started."}
+            </p>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
-          <table className="w-full min-w-[700px]">
-            <thead>
-              <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Order #
-                </th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Customer
-                </th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Items
-                </th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Total
-                </th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Date
-                </th>
-                <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((order) => (
-                <tr
-                  key={order._id}
-                  className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition"
-                >
-                  <td className="px-6 py-4 text-sm font-medium text-indigo-600">
-                    {order.orderNumber}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-800">
-                    {order.customerName}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {order.items.length} item{order.items.length !== 1 ? "s" : ""}
-                  </td>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-800">
-                    ${order.totalPrice.toFixed(2)}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full ${
-                        statusColors[order.status] || "bg-gray-100 text-gray-700"
-                      }`}
-                    >
-                      {order.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    {new Date(order.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-end">
-                      <Link
-                        to={`/orders/${order._id}`}
-                        className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
-                        title="View"
-                      >
-                        <HiOutlineEye className="h-4 w-4" />
-                      </Link>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Card>
+          <CardContent className="p-0 overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Order #</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Items</TableHead>
+                  <TableHead>Total</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {orders.map((order) => (
+                  <TableRow key={order._id}>
+                    <TableCell className="font-medium text-primary">
+                      {order.orderNumber}
+                    </TableCell>
+                    <TableCell>{order.customerName}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {order.items.length} item{order.items.length !== 1 ? "s" : ""}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      ${order.totalPrice.toFixed(2)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariant[order.status] || "outline"}>
+                        {order.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {new Date(order.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-end">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          asChild
+                        >
+                          <Link to={`/orders/${order._id}`}>
+                            <Eye className="h-3.5 w-3.5" />
+                          </Link>
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

@@ -2,8 +2,13 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { createOrder } from "../services/orderService";
 import { getProducts } from "../services/productService";
-import toast from "react-hot-toast";
-import { HiOutlinePlus, HiOutlineTrash, HiOutlineExclamation } from "react-icons/hi";
+import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { PageSkeleton } from "@/components/ui/skeleton";
+import { Plus, Trash2, AlertCircle, Loader2 } from "lucide-react";
 
 const CreateOrder = () => {
   const navigate = useNavigate();
@@ -43,19 +48,16 @@ const CreateOrder = () => {
     );
   };
 
-  // Check for duplicate products
   const getDuplicateIndex = (index) => {
     const productId = items[index]?.product;
     if (!productId) return false;
     return items.findIndex((item, i) => i !== index && item.product === productId) !== -1;
   };
 
-  // Get product details for an item
   const getProductInfo = (productId) => {
     return products.find((p) => p._id === productId);
   };
 
-  // Check if quantity exceeds stock
   const getStockWarning = (index) => {
     const item = items[index];
     if (!item?.product || !item.quantity) return null;
@@ -67,14 +69,12 @@ const CreateOrder = () => {
     return null;
   };
 
-  // Calculate total price
   const totalPrice = items.reduce((sum, item) => {
     if (!item.product) return sum;
     const product = getProductInfo(item.product);
     return sum + (product?.price || 0) * (item.quantity || 0);
   }, 0);
 
-  // Validate form
   const hasErrors = () => {
     if (!customerName.trim()) return true;
     if (items.length === 0) return true;
@@ -109,169 +109,172 @@ const CreateOrder = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
-      </div>
-    );
-  }
+  if (loading) return <PageSkeleton />;
 
   return (
-    <div className="max-w-3xl">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">Create Order</h2>
+    <div className="max-w-3xl space-y-6">
+      <h2 className="text-2xl font-bold tracking-tight">Create Order</h2>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Customer Name */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Customer Name
-          </label>
-          <input
-            type="text"
-            value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
-            required
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
-            placeholder="e.g. John Doe"
-          />
-        </div>
+        <Card>
+          <CardContent className="p-6">
+            <Label htmlFor="customerName">Customer Name</Label>
+            <Input
+              id="customerName"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              required
+              placeholder="e.g. John Doe"
+              className="mt-1.5"
+            />
+          </CardContent>
+        </Card>
 
         {/* Order Items */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-gray-700">Order Items</h3>
-            <button
-              type="button"
-              onClick={addItem}
-              className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-700 font-medium transition"
-            >
-              <HiOutlinePlus className="h-4 w-4" />
-              Add Item
-            </button>
-          </div>
-
-          {items.length === 0 ? (
-            <div className="text-center py-8 text-gray-400 text-sm">
-              No items added yet. Click &quot;Add Item&quot; to start.
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm">Order Items</CardTitle>
+              <Button type="button" variant="ghost" size="sm" onClick={addItem}>
+                <Plus className="h-4 w-4 mr-1" />
+                Add Item
+              </Button>
             </div>
-          ) : (
-            <div className="space-y-4">
-              {items.map((item, index) => {
-                const isDuplicate = getDuplicateIndex(index);
-                const stockWarning = getStockWarning(index);
-                const product = getProductInfo(item.product);
+          </CardHeader>
+          <CardContent>
+            {items.length === 0 ? (
+              <div className="text-center py-8 text-sm text-muted-foreground">
+                No items added yet. Click &quot;Add Item&quot; to start.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {items.map((item, index) => {
+                  const isDuplicate = getDuplicateIndex(index);
+                  const stockWarning = getStockWarning(index);
+                  const product = getProductInfo(item.product);
 
-                return (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex gap-3 items-start">
-                      {/* Product selector */}
-                      <div className="flex-1">
-                        <label className="block text-xs text-gray-500 mb-1">
-                          Product
-                        </label>
-                        <select
-                          value={item.product}
-                          onChange={(e) => updateItem(index, "product", e.target.value)}
-                          required
-                          className={`w-full px-3 py-2 border rounded-lg text-sm outline-none transition ${
-                            isDuplicate
-                              ? "border-red-300 focus:ring-red-500"
-                              : "border-gray-300 focus:ring-indigo-500"
-                          } focus:ring-2`}
+                  return (
+                    <div
+                      key={index}
+                      className="rounded-lg border border-border p-4"
+                    >
+                      <div className="flex gap-3 items-start">
+                        <div className="flex-1">
+                          <Label className="text-xs text-muted-foreground">
+                            Product
+                          </Label>
+                          <select
+                            value={item.product}
+                            onChange={(e) =>
+                              updateItem(index, "product", e.target.value)
+                            }
+                            required
+                            className={`mt-1 flex h-9 w-full rounded-md border px-3 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                              isDuplicate
+                                ? "border-destructive focus:ring-destructive"
+                                : "border-input focus:ring-ring"
+                            } bg-background`}
+                          >
+                            <option value="">Select product</option>
+                            {activeProducts.map((p) => (
+                              <option key={p._id} value={p._id}>
+                                {p.name} — ${p.price.toFixed(2)} (Stock:{" "}
+                                {p.stockQuantity})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="w-28">
+                          <Label className="text-xs text-muted-foreground">
+                            Qty
+                          </Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={item.quantity}
+                            onChange={(e) =>
+                              updateItem(index, "quantity", Number(e.target.value))
+                            }
+                            required
+                            className={`mt-1 ${
+                              stockWarning ? "border-destructive focus-visible:ring-destructive" : ""
+                            }`}
+                          />
+                        </div>
+
+                        <div className="w-24 pt-6">
+                          <p className="text-sm font-medium text-right">
+                            $
+                            {product
+                              ? (product.price * item.quantity).toFixed(2)
+                              : "0.00"}
+                          </p>
+                        </div>
+
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="mt-5 h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => removeItem(index)}
                         >
-                          <option value="">Select product</option>
-                          {activeProducts.map((p) => (
-                            <option key={p._id} value={p._id}>
-                              {p.name} — ${p.price.toFixed(2)} (Stock: {p.stockQuantity})
-                            </option>
-                          ))}
-                        </select>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
 
-                      {/* Quantity */}
-                      <div className="w-28">
-                        <label className="block text-xs text-gray-500 mb-1">
-                          Qty
-                        </label>
-                        <input
-                          type="number"
-                          min="1"
-                          value={item.quantity}
-                          onChange={(e) =>
-                            updateItem(index, "quantity", Number(e.target.value))
-                          }
-                          required
-                          className={`w-full px-3 py-2 border rounded-lg text-sm outline-none transition ${
-                            stockWarning
-                              ? "border-red-300 focus:ring-red-500"
-                              : "border-gray-300 focus:ring-indigo-500"
-                          } focus:ring-2`}
-                        />
-                      </div>
-
-                      {/* Subtotal */}
-                      <div className="w-24 pt-5">
-                        <p className="text-sm font-medium text-gray-800 text-right">
-                          ${product ? (product.price * item.quantity).toFixed(2) : "0.00"}
-                        </p>
-                      </div>
-
-                      {/* Remove */}
-                      <button
-                        type="button"
-                        onClick={() => removeItem(index)}
-                        className="mt-5 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-                      >
-                        <HiOutlineTrash className="h-4 w-4" />
-                      </button>
+                      {isDuplicate && (
+                        <div className="flex items-center gap-1.5 mt-2 text-xs text-destructive">
+                          <AlertCircle className="h-3.5 w-3.5" />
+                          This product is already added to the order.
+                        </div>
+                      )}
+                      {stockWarning && (
+                        <div className="flex items-center gap-1.5 mt-2 text-xs text-destructive">
+                          <AlertCircle className="h-3.5 w-3.5" />
+                          {stockWarning}
+                        </div>
+                      )}
                     </div>
-
-                    {/* Warnings */}
-                    {isDuplicate && (
-                      <div className="flex items-center gap-1.5 mt-2 text-xs text-red-600">
-                        <HiOutlineExclamation className="h-3.5 w-3.5" />
-                        This product is already added to the order.
-                      </div>
-                    )}
-                    {stockWarning && (
-                      <div className="flex items-center gap-1.5 mt-2 text-xs text-red-600">
-                        <HiOutlineExclamation className="h-3.5 w-3.5" />
-                        {stockWarning}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Total & Submit */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-medium text-gray-600">Total Price</span>
-            <span className="text-2xl font-bold text-gray-800">
-              ${totalPrice.toFixed(2)}
-            </span>
-          </div>
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => navigate("/orders")}
-              className="flex-1 px-4 py-2.5 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting || hasErrors()}
-              className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {submitting ? "Creating..." : "Create Order"}
-            </button>
-          </div>
-        </div>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm font-medium text-muted-foreground">
+                Total Price
+              </span>
+              <span className="text-2xl font-bold">${totalPrice.toFixed(2)}</span>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => navigate("/orders")}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="flex-1"
+                disabled={submitting || hasErrors()}
+              >
+                {submitting && (
+                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                )}
+                Create Order
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </form>
     </div>
   );

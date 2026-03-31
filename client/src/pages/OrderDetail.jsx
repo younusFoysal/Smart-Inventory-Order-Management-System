@@ -1,21 +1,34 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getOrder, updateOrderStatus } from "../services/orderService";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import {
-  HiOutlineArrowLeft,
-  HiOutlineClock,
-  HiOutlineCheckCircle,
-  HiOutlineTruck,
-  HiOutlineXCircle,
-} from "react-icons/hi";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { PageSkeleton } from "@/components/ui/skeleton";
+import {
+  ArrowLeft,
+  Clock,
+  CheckCircle2,
+  Truck,
+  XCircle,
+  Loader2,
+} from "lucide-react";
 
 const statusConfig = {
-  Pending: { color: "bg-yellow-100 text-yellow-700", icon: HiOutlineClock },
-  Confirmed: { color: "bg-blue-100 text-blue-700", icon: HiOutlineCheckCircle },
-  Shipped: { color: "bg-purple-100 text-purple-700", icon: HiOutlineTruck },
-  Delivered: { color: "bg-green-100 text-green-700", icon: HiOutlineCheckCircle },
-  Cancelled: { color: "bg-red-100 text-red-700", icon: HiOutlineXCircle },
+  Pending: { variant: "warning", icon: Clock },
+  Confirmed: { variant: "info", icon: CheckCircle2 },
+  Shipped: { variant: "secondary", icon: Truck },
+  Delivered: { variant: "success", icon: CheckCircle2 },
+  Cancelled: { variant: "destructive", icon: XCircle },
 };
 
 const validTransitions = {
@@ -72,138 +85,155 @@ const OrderDetail = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
-      </div>
-    );
-  }
-
+  if (loading) return <PageSkeleton />;
   if (!order) return null;
 
-  const StatusIcon = statusConfig[order.status]?.icon || HiOutlineClock;
+  const config = statusConfig[order.status] || statusConfig.Pending;
+  const StatusIcon = config.icon;
   const transitions = validTransitions[order.status] || [];
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-3xl space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <button
+      <div className="flex items-center gap-3">
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => navigate("/orders")}
-          className="p-2 hover:bg-gray-100 rounded-lg transition"
         >
-          <HiOutlineArrowLeft className="h-5 w-5 text-gray-600" />
-        </button>
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">{order.orderNumber}</h2>
-          <p className="text-sm text-gray-500">
-            Created {new Date(order.createdAt).toLocaleDateString("en-US", {
-              year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit"
+          <h2 className="text-2xl font-bold tracking-tight">
+            {order.orderNumber}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Created{" "}
+            {new Date(order.createdAt).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
             })}
           </p>
         </div>
       </div>
 
       {/* Status & Customer */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-4">
-        <div className="flex items-center justify-between">
+      <Card>
+        <CardContent className="flex items-center justify-between p-6">
           <div>
-            <p className="text-xs text-gray-500 mb-1">Customer</p>
-            <p className="text-lg font-semibold text-gray-800">{order.customerName}</p>
+            <p className="text-xs text-muted-foreground mb-1">Customer</p>
+            <p className="text-lg font-semibold">{order.customerName}</p>
           </div>
-          <span
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${
-              statusConfig[order.status]?.color
-            }`}
-          >
-            <StatusIcon className="h-4 w-4" />
+          <Badge variant={config.variant} className="gap-1.5 px-3 py-1.5 text-sm">
+            <StatusIcon className="h-3.5 w-3.5" />
             {order.status}
-          </span>
-        </div>
-      </div>
+          </Badge>
+        </CardContent>
+      </Card>
 
       {/* Items */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-4">
-        <h3 className="text-sm font-semibold text-gray-700 mb-4">Order Items</h3>
-        <div className="divide-y divide-gray-100">
-          {order.items.map((item, i) => (
-            <div key={i} className="flex items-center justify-between py-3">
-              <div>
-                <p className="text-sm font-medium text-gray-800">{item.productName}</p>
-                <p className="text-xs text-gray-500">
-                  ${item.price.toFixed(2)} × {item.quantity}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm">Order Items</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="divide-y divide-border">
+            {order.items.map((item, i) => (
+              <div key={i} className="flex items-center justify-between py-3">
+                <div>
+                  <p className="text-sm font-medium">{item.productName}</p>
+                  <p className="text-xs text-muted-foreground">
+                    ${item.price.toFixed(2)} x {item.quantity}
+                  </p>
+                </div>
+                <p className="text-sm font-semibold">
+                  ${(item.price * item.quantity).toFixed(2)}
                 </p>
               </div>
-              <p className="text-sm font-semibold text-gray-800">
-                ${(item.price * item.quantity).toFixed(2)}
-              </p>
-            </div>
-          ))}
-        </div>
-        <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-200">
-          <span className="text-sm font-medium text-gray-600">Total</span>
-          <span className="text-xl font-bold text-gray-800">
-            ${order.totalPrice.toFixed(2)}
-          </span>
-        </div>
-      </div>
+            ))}
+          </div>
+          <Separator className="my-4" />
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-muted-foreground">Total</span>
+            <span className="text-xl font-bold">
+              ${order.totalPrice.toFixed(2)}
+            </span>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Actions */}
       {transitions.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">Update Status</h3>
-          <div className="flex gap-3">
-            {transitions.map((status) => (
-              <button
-                key={status}
-                onClick={() => handleStatusUpdate(status)}
-                disabled={updating}
-                className={`px-4 py-2.5 rounded-lg text-sm font-medium transition disabled:opacity-50 ${
-                  status === "Cancelled"
-                    ? "border border-red-300 text-red-600 hover:bg-red-50"
-                    : "bg-indigo-600 text-white hover:bg-indigo-700"
-                }`}
-              >
-                {updating ? "Updating..." : `Mark as ${status}`}
-              </button>
-            ))}
-          </div>
-        </div>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm">Update Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-3">
+              {transitions.map((status) => (
+                <Button
+                  key={status}
+                  variant={status === "Cancelled" ? "outline" : "default"}
+                  className={
+                    status === "Cancelled"
+                      ? "border-destructive text-destructive hover:bg-destructive/10"
+                      : ""
+                  }
+                  onClick={() => handleStatusUpdate(status)}
+                  disabled={updating}
+                >
+                  {updating && (
+                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                  )}
+                  Mark as {status}
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Cancel Confirmation Modal */}
-      {showCancelConfirm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
-            <div className="flex items-center gap-3 mb-4">
+      {/* Cancel Confirmation Dialog */}
+      <Dialog
+        open={showCancelConfirm}
+        onOpenChange={(open) => !open && setShowCancelConfirm(false)}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                <HiOutlineXCircle className="h-5 w-5 text-red-600" />
+                <XCircle className="h-5 w-5 text-red-600" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-800">Cancel Order</h3>
+              <DialogTitle>Cancel Order</DialogTitle>
             </div>
-            <p className="text-sm text-gray-600 mb-6">
-              Are you sure you want to cancel this order? Stock will be restored for all items.
-              This action cannot be undone.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowCancelConfirm(false)}
-                className="flex-1 px-4 py-2.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-              >
-                Keep Order
-              </button>
-              <button
-                onClick={() => doUpdate("Cancelled")}
-                disabled={updating}
-                className="flex-1 px-4 py-2.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition disabled:opacity-50"
-              >
-                {updating ? "Cancelling..." : "Cancel Order"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to cancel this order? Stock will be restored
+            for all items. This action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowCancelConfirm(false)}
+            >
+              Keep Order
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => doUpdate("Cancelled")}
+              disabled={updating}
+            >
+              {updating && (
+                <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+              )}
+              Cancel Order
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
