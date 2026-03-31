@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { protect } = require("../middleware/auth");
+const { protect, authorize } = require("../middleware/auth");
 const {
   getRestockQueue,
   restockProduct,
@@ -9,6 +9,6 @@ const {
 router.use(protect);
 
 router.get("/", getRestockQueue);
-router.put("/:id", restockProduct);
+router.put("/:id", authorize("admin"), restockProduct);
 
 module.exports = router;

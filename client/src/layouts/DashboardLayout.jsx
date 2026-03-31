@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   Box,
+  Users,
 } from "lucide-react";
 
 const navItems = [
@@ -22,6 +23,7 @@ const navItems = [
   { to: "/products", label: "Products", icon: Package },
   { to: "/orders", label: "Orders", icon: ClipboardList },
   { to: "/restock", label: "Restock Queue", icon: AlertTriangle },
+  { to: "/users", label: "Users", icon: Users, adminOnly: true },
 ];
 
 const DashboardLayout = () => {
@@ -73,7 +75,9 @@ const DashboardLayout = () => {
 
           {/* Navigation */}
           <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-            {navItems.map(({ to, label, icon: Icon }) => (
+            {navItems
+              .filter((item) => !item.adminOnly || user?.role === "admin")
+              .map(({ to, label, icon: Icon }) => (
               <NavLink
                 key={to}
                 to={to}

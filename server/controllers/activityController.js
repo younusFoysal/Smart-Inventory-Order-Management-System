@@ -4,7 +4,7 @@ const ActivityLog = require("../models/ActivityLog");
 // @route   GET /api/activity
 exports.getActivityLogs = async (req, res) => {
   try {
-    const logs = await ActivityLog.find({ user: req.user._id })
+    const logs = await ActivityLog.find()
       .sort({ createdAt: -1 })
       .limit(10);
 

@@ -5,8 +5,6 @@ const Product = require("../models/Product");
 // @route   GET /api/dashboard/stats
 exports.getDashboardStats = async (req, res) => {
   try {
-    const userId = req.user._id;
-
     // Today's date range
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
@@ -24,18 +22,16 @@ exports.getDashboardStats = async (req, res) => {
     ] = await Promise.all([
       // Total orders today
       Order.countDocuments({
-        user: userId,
         createdAt: { $gte: todayStart, $lte: todayEnd },
       }),
       // Pending orders count
-      Order.countDocuments({ user: userId, status: "Pending" }),
+      Order.countDocuments({ status: "Pending" }),
       // Completed (Delivered) orders count
-      Order.countDocuments({ user: userId, status: "Delivered" }),
+      Order.countDocuments({ status: "Delivered" }),
       // Revenue today (sum of delivered orders' totalPrice for today)
       Order.aggregate([
         {
           $match: {
-            user: userId,
             status: "Delivered",
             createdAt: { $gte: todayStart, $lte: todayEnd },
           },
@@ -43,14 +39,13 @@ exports.getDashboardStats = async (req, res) => {
         { $group: { _id: null, total: { $sum: "$totalPrice" } } },
       ]),
       // All products with stock and status
-      Product.find({ user: userId })
+      Product.find()
         .populate("category", "name")
         .sort({ stockQuantity: 1 }),
       // Orders from last 7 days for chart
       Order.aggregate([
         {
           $match: {
-            user: userId,
             createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
           },
         },

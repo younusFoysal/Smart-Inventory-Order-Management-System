@@ -32,7 +32,6 @@ exports.createOrder = async (req, res) => {
     // Fetch all products and validate
     const products = await Product.find({
       _id: { $in: productIds },
-      user: req.user._id,
     });
 
     if (products.length !== productIds.length) {
@@ -129,7 +128,7 @@ exports.createOrder = async (req, res) => {
 exports.getOrders = async (req, res) => {
   try {
     const { status, startDate, endDate } = req.query;
-    const filter = { user: req.user._id };
+    const filter = {};
 
     if (status) {
       filter.status = status;
@@ -156,10 +155,8 @@ exports.getOrders = async (req, res) => {
 // @route   GET /api/orders/:id
 exports.getOrder = async (req, res) => {
   try {
-    const order = await Order.findOne({
-      _id: req.params.id,
-      user: req.user._id,
-    }).populate("items.product", "name stockQuantity status");
+    const order = await Order.findById(req.params.id)
+      .populate("items.product", "name stockQuantity status");
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
@@ -176,10 +173,7 @@ exports.getOrder = async (req, res) => {
 exports.updateOrderStatus = async (req, res) => {
   try {
     const { status } = req.body;
-    const order = await Order.findOne({
-      _id: req.params.id,
-      user: req.user._id,
-    });
+    const order = await Order.findById(req.params.id);
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });

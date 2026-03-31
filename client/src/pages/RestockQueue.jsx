@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { TableSkeleton } from "@/components/ui/skeleton";
 import { RefreshCw, Loader2, PackageCheck } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 const priorityVariant = {
   High: "destructive",
@@ -31,6 +32,8 @@ const priorityVariant = {
 };
 
 const RestockQueue = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalItem, setModalItem] = useState(null);
@@ -124,7 +127,7 @@ const RestockQueue = () => {
                   <TableHead>Current Stock</TableHead>
                   <TableHead>Threshold</TableHead>
                   <TableHead>Priority</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  {isAdmin && <TableHead className="text-right">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -161,17 +164,19 @@ const RestockQueue = () => {
                         {item.priority}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openModal(item)}
-                        >
-                          Restock
-                        </Button>
-                      </div>
-                    </TableCell>
+                    {isAdmin && (
+                      <TableCell>
+                        <div className="flex items-center justify-end">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openModal(item)}
+                          >
+                            Restock
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>

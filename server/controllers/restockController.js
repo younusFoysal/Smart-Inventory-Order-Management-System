@@ -7,7 +7,6 @@ const logActivity = require("../utils/logActivity");
 exports.getRestockQueue = async (req, res) => {
   try {
     const items = await RestockQueue.find({
-      user: req.user._id,
       resolved: false,
     })
       .populate("product", "name category price stockQuantity minStockThreshold status")
@@ -31,7 +30,6 @@ exports.restockProduct = async (req, res) => {
 
     const queueItem = await RestockQueue.findOne({
       _id: req.params.id,
-      user: req.user._id,
       resolved: false,
     });
 

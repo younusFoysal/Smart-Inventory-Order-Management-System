@@ -27,8 +27,11 @@ import {
 } from "@/components/ui/dialog";
 import { TableSkeleton } from "@/components/ui/skeleton";
 import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 const Categories = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -113,10 +116,12 @@ const Categories = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold tracking-tight">Categories</h2>
-        <Button onClick={openAddModal} size="sm">
-          <Plus className="h-4 w-4 mr-1.5" />
-          Add Category
-        </Button>
+        {isAdmin && (
+          <Button onClick={openAddModal} size="sm">
+            <Plus className="h-4 w-4 mr-1.5" />
+            Add Category
+          </Button>
+        )}
       </div>
 
       {/* Table */}
@@ -138,7 +143,7 @@ const Categories = () => {
                   <TableHead className="w-12">#</TableHead>
                   <TableHead>Category Name</TableHead>
                   <TableHead>Created</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  {isAdmin && <TableHead className="text-right">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -151,26 +156,28 @@ const Categories = () => {
                     <TableCell className="text-muted-foreground">
                       {new Date(category.createdAt).toLocaleDateString()}
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => openEditModal(category)}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => setDeleteConfirm(category._id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
+                    {isAdmin && (
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => openEditModal(category)}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => setDeleteConfirm(category._id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
