@@ -106,7 +106,7 @@ const Login = () => {
               variant="outline"
               className="w-full"
             >
-              🚀 Demo Login
+              Demo Login
             </Button>
 
             <p className="text-center text-sm text-muted-foreground mt-6">
