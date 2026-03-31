@@ -8,6 +8,9 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Categories from "./pages/Categories";
 import Products from "./pages/Products";
+import Orders from "./pages/Orders";
+import CreateOrder from "./pages/CreateOrder";
+import OrderDetail from "./pages/OrderDetail";
 
 function App() {
   return (
@@ -30,6 +33,9 @@ function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/categories" element={<Categories />} />
             <Route path="/products" element={<Products />} />
+            <Route path="/orders" element={<Orders />} />
+            <Route path="/orders/create" element={<CreateOrder />} />
+            <Route path="/orders/:id" element={<OrderDetail />} />
           </Route>
 
           {/* Redirects */}
