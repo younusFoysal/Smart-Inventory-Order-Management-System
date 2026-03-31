@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { getUsers, updateUserRole } from "../services/userService";
+import { sendManagerRequest } from "../services/managerRequestService";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,53 +22,136 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { TableSkeleton } from "@/components/ui/skeleton";
-import { Shield, ShieldCheck, Loader2 } from "lucide-react";
+import { Shield, ShieldCheck, Loader2, Send, UserMinus, Clock, CheckCircle2, XCircle } from "lucide-react";
 
 const Users = () => {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [roleModal, setRoleModal] = useState(null); // { userId, name, currentRole, newRole }
-  const [updating, setUpdating] = useState(false);
+  const [confirmModal, setConfirmModal] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const fetchUsers = async () => {
+    try {
+      const data = await getUsers();
+      setUsers(data);
+    } catch {
+      toast.error("Failed to load users");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const data = await getUsers();
-        setUsers(data);
-      } catch {
-        toast.error("Failed to load users");
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchUsers();
   }, []);
 
-  const openRoleModal = (user, newRole) => {
-    setRoleModal({
-      userId: user._id,
-      name: user.name,
-      currentRole: user.role,
-      newRole,
-    });
+  const handleSendRequest = async (user) => {
+    setSubmitting(true);
+    try {
+      await sendManagerRequest(user._id);
+      toast.success(`Manager request sent to ${user.name}`);
+      setConfirmModal(null);
+      fetchUsers();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to send request");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleRoleUpdate = async () => {
-    if (!roleModal) return;
-    setUpdating(true);
+  const handleRemoveManager = async (user) => {
+    setSubmitting(true);
     try {
-      const updated = await updateUserRole(roleModal.userId, roleModal.newRole);
-      setUsers((prev) =>
-        prev.map((u) => (u._id === updated._id ? { ...u, role: updated.role } : u))
-      );
-      toast.success(`${roleModal.name} is now ${roleModal.newRole}`);
-      setRoleModal(null);
+      await updateUserRole(user._id, "admin");
+      toast.success(`${user.name} has been reverted to admin`);
+      setConfirmModal(null);
+      fetchUsers();
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to update role");
     } finally {
-      setUpdating(false);
+      setSubmitting(false);
     }
+  };
+
+  const getRequestBadge = (u) => {
+    if (u.requestStatus === "pending") {
+      return (
+        <Badge variant="outline" className="gap-1">
+          <Clock className="h-3 w-3" /> Pending
+        </Badge>
+      );
+    }
+    if (u.requestStatus === "declined") {
+      return (
+        <Badge variant="destructive" className="gap-1">
+          <XCircle className="h-3 w-3" /> Declined
+        </Badge>
+      );
+    }
+    if (u.requestStatus === "accepted") {
+      return (
+        <Badge variant="success" className="gap-1">
+          <CheckCircle2 className="h-3 w-3" /> Accepted
+        </Badge>
+      );
+    }
+    return null;
+  };
+
+  const getActionButton = (u) => {
+    // Already a manager assigned to another admin
+    if (u.role === "manager" && u.assignedAdmin && u.assignedAdmin !== currentUser?._id) {
+      return <span className="text-xs text-muted-foreground">Assigned to another admin</span>;
+    }
+
+    // This user is MY manager (accepted request from me)
+    if (u.role === "manager" && u.assignedAdmin === currentUser?._id) {
+      return (
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-destructive hover:text-destructive"
+          onClick={() =>
+            setConfirmModal({ type: "remove", user: u })
+          }
+        >
+          <UserMinus className="h-3.5 w-3.5 mr-1.5" />
+          Remove Manager
+        </Button>
+      );
+    }
+
+    // Pending request already sent
+    if (u.requestStatus === "pending") {
+      return <span className="text-xs text-muted-foreground">Request sent</span>;
+    }
+
+    // Declined — allow re-sending
+    if (u.requestStatus === "declined") {
+      return (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setConfirmModal({ type: "send", user: u })}
+        >
+          <Send className="h-3.5 w-3.5 mr-1.5" />
+          Resend Request
+        </Button>
+      );
+    }
+
+    // Default — can send request
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setConfirmModal({ type: "send", user: u })}
+      >
+        <Send className="h-3.5 w-3.5 mr-1.5" />
+        Make Manager
+      </Button>
+    );
   };
 
   if (loading) return <TableSkeleton />;
@@ -77,8 +161,7 @@ const Users = () => {
       <div>
         <h2 className="text-2xl font-bold tracking-tight">User Management</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Manage user roles. Admins have full access, managers can only view data
-          and create orders.
+          Send manager requests to other users. They must accept before becoming your manager.
         </p>
       </div>
 
@@ -92,8 +175,8 @@ const Users = () => {
             <div>
               <p className="text-sm font-semibold">Admin</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Full access — manage products, categories, orders, restock, and
-                users.
+                Full access to their own data — manage products, categories,
+                orders, restock, and users.
               </p>
             </div>
           </CardContent>
@@ -106,8 +189,8 @@ const Users = () => {
             <div>
               <p className="text-sm font-semibold">Manager</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                View only — can browse data and create orders. Cannot modify
-                products or categories.
+                Can view their assigned admin's data and create orders on their
+                behalf.
               </p>
             </div>
           </CardContent>
@@ -123,101 +206,87 @@ const Users = () => {
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>Joined</TableHead>
+                <TableHead>Request</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((u) => {
-                const isSelf = u._id === currentUser?._id;
-                return (
-                  <TableRow key={u._id}>
-                    <TableCell className="font-medium">
-                      {u.name}
-                      {isSelf && (
-                        <Badge variant="outline" className="ml-2 text-[10px]">
-                          You
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {u.email}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={u.role === "admin" ? "default" : "warning"}
-                        className="capitalize"
-                      >
-                        {u.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {new Date(u.createdAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end">
-                        {isSelf ? (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        ) : u.role === "admin" ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openRoleModal(u, "manager")}
-                          >
-                            Make Manager
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openRoleModal(u, "admin")}
-                          >
-                            Make Admin
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+              {users.map((u) => (
+                <TableRow key={u._id}>
+                  <TableCell className="font-medium">{u.name}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {u.email}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={u.role === "admin" ? "default" : "warning"}
+                      className="capitalize"
+                    >
+                      {u.role}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{getRequestBadge(u)}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end">
+                      {getActionButton(u)}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
-      {/* Role change confirmation dialog */}
+      {/* Confirmation Dialog */}
       <Dialog
-        open={!!roleModal}
-        onOpenChange={(open) => !open && setRoleModal(null)}
+        open={!!confirmModal}
+        onOpenChange={(open) => !open && setConfirmModal(null)}
       >
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Change Role</DialogTitle>
+            <DialogTitle>
+              {confirmModal?.type === "send"
+                ? "Send Manager Request"
+                : "Remove Manager"}
+            </DialogTitle>
           </DialogHeader>
-          {roleModal && (
+          {confirmModal && (
             <p className="text-sm text-muted-foreground">
-              Change <span className="font-medium text-foreground">{roleModal.name}</span>{" "}
-              from{" "}
-              <Badge variant="outline" className="capitalize mx-0.5">
-                {roleModal.currentRole}
-              </Badge>{" "}
-              to{" "}
-              <Badge
-                variant={roleModal.newRole === "admin" ? "default" : "warning"}
-                className="capitalize mx-0.5"
-              >
-                {roleModal.newRole}
-              </Badge>
-              ?
+              {confirmModal.type === "send" ? (
+                <>
+                  Send a manager request to{" "}
+                  <span className="font-medium text-foreground">
+                    {confirmModal.user.name}
+                  </span>
+                  ? They will need to accept it before becoming your manager.
+                </>
+              ) : (
+                <>
+                  Remove{" "}
+                  <span className="font-medium text-foreground">
+                    {confirmModal.user.name}
+                  </span>{" "}
+                  as your manager? They will be reverted to an admin role.
+                </>
+              )}
             </p>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRoleModal(null)}>
+            <Button variant="outline" onClick={() => setConfirmModal(null)}>
               Cancel
             </Button>
-            <Button onClick={handleRoleUpdate} disabled={updating}>
-              {updating && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
-              Confirm
+            <Button
+              variant={confirmModal?.type === "remove" ? "destructive" : "default"}
+              onClick={() =>
+                confirmModal?.type === "send"
+                  ? handleSendRequest(confirmModal.user)
+                  : handleRemoveManager(confirmModal.user)
+              }
+              disabled={submitting}
+            >
+              {submitting && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
+              {confirmModal?.type === "send" ? "Send Request" : "Remove"}
             </Button>
           </DialogFooter>
         </DialogContent>

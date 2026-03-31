@@ -1,10 +1,11 @@
 const ActivityLog = require("../models/ActivityLog");
+const getDataOwner = require("../utils/getDataOwner");
 
 // @desc    Get recent activity logs
 // @route   GET /api/activity
 exports.getActivityLogs = async (req, res) => {
   try {
-    const logs = await ActivityLog.find()
+    const logs = await ActivityLog.find({ user: getDataOwner(req) })
       .sort({ createdAt: -1 })
       .limit(10);
 

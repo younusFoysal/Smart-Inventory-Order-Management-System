@@ -27,6 +27,7 @@ exports.register = async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      assignedAdmin: user.assignedAdmin,
       token: generateToken(user._id),
     });
   } catch (error) {
@@ -59,6 +60,7 @@ exports.login = async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      assignedAdmin: user.assignedAdmin,
       token: generateToken(user._id),
     });
   } catch (error) {
@@ -80,6 +82,7 @@ exports.getMe = async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      assignedAdmin: user.assignedAdmin,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

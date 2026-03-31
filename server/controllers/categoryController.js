@@ -1,5 +1,6 @@
 const Category = require("../models/Category");
 const Product = require("../models/Product");
+const getDataOwner = require("../utils/getDataOwner");
 
 // @desc    Create a category
 // @route   POST /api/categories
@@ -13,6 +14,7 @@ exports.createCategory = async (req, res) => {
 
     const existing = await Category.findOne({
       name: { $regex: new RegExp(`^${name.trim()}$`, "i") },
+      user: req.user._id,
     });
     if (existing) {
       return res.status(400).json({ message: "Category already exists" });
@@ -33,7 +35,7 @@ exports.createCategory = async (req, res) => {
 // @route   GET /api/categories
 exports.getCategories = async (req, res) => {
   try {
-    const categories = await Category.find().sort({
+    const categories = await Category.find({ user: getDataOwner(req) }).sort({
       createdAt: -1,
     });
     res.json(categories);
@@ -52,7 +54,10 @@ exports.updateCategory = async (req, res) => {
       return res.status(400).json({ message: "Category name is required" });
     }
 
-    const category = await Category.findById(req.params.id);
+    const category = await Category.findOne({
+      _id: req.params.id,
+      user: getDataOwner(req),
+    });
 
     if (!category) {
       return res.status(404).json({ message: "Category not found" });
@@ -61,6 +66,7 @@ exports.updateCategory = async (req, res) => {
     // Check for duplicate name (excluding current)
     const duplicate = await Category.findOne({
       name: { $regex: new RegExp(`^${name.trim()}$`, "i") },
+      user: getDataOwner(req),
       _id: { $ne: req.params.id },
     });
     if (duplicate) {
@@ -80,7 +86,10 @@ exports.updateCategory = async (req, res) => {
 // @route   DELETE /api/categories/:id
 exports.deleteCategory = async (req, res) => {
   try {
-    const category = await Category.findById(req.params.id);
+    const category = await Category.findOne({
+      _id: req.params.id,
+      user: getDataOwner(req),
+    });
 
     if (!category) {
       return res.status(404).json({ message: "Category not found" });

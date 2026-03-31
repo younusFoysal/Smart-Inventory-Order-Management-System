@@ -1,6 +1,7 @@
 const Product = require("../models/Product");
 const Category = require("../models/Category");
 const logActivity = require("../utils/logActivity");
+const getDataOwner = require("../utils/getDataOwner");
 
 // @desc    Create a product
 // @route   POST /api/products
@@ -12,8 +13,8 @@ exports.createProduct = async (req, res) => {
       return res.status(400).json({ message: "Name, category, price, and stock quantity are required" });
     }
 
-    // Verify category exists
-    const cat = await Category.findById(category);
+    // Verify category exists and belongs to this admin
+    const cat = await Category.findOne({ _id: category, user: req.user._id });
     if (!cat) {
       return res.status(404).json({ message: "Category not found" });
     }
@@ -45,7 +46,7 @@ exports.createProduct = async (req, res) => {
 exports.getProducts = async (req, res) => {
   try {
     const { search, category, status } = req.query;
-    const filter = {};
+    const filter = { user: getDataOwner(req) };
 
     if (search) {
       filter.name = { $regex: search, $options: "i" };
@@ -71,7 +72,10 @@ exports.getProducts = async (req, res) => {
 // @route   GET /api/products/:id
 exports.getProduct = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id).populate("category", "name");
+    const product = await Product.findOne({
+      _id: req.params.id,
+      user: getDataOwner(req),
+    }).populate("category", "name");
 
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
@@ -87,7 +91,10 @@ exports.getProduct = async (req, res) => {
 // @route   PUT /api/products/:id
 exports.updateProduct = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findOne({
+      _id: req.params.id,
+      user: getDataOwner(req),
+    });
 
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
@@ -96,7 +103,7 @@ exports.updateProduct = async (req, res) => {
     const { name, category, price, stockQuantity, minStockThreshold } = req.body;
 
     if (category) {
-      const cat = await Category.findById(category);
+      const cat = await Category.findOne({ _id: category, user: getDataOwner(req) });
       if (!cat) {
         return res.status(404).json({ message: "Category not found" });
       }
@@ -126,7 +133,10 @@ exports.updateProduct = async (req, res) => {
 // @route   DELETE /api/products/:id
 exports.deleteProduct = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findOne({
+      _id: req.params.id,
+      user: getDataOwner(req),
+    });
 
     if (!product) {
       return res.status(404).json({ message: "Product not found" });

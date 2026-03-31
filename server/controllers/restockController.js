@@ -1,12 +1,14 @@
 const RestockQueue = require("../models/RestockQueue");
 const Product = require("../models/Product");
 const logActivity = require("../utils/logActivity");
+const getDataOwner = require("../utils/getDataOwner");
 
 // @desc    Get unresolved restock queue items
 // @route   GET /api/restock
 exports.getRestockQueue = async (req, res) => {
   try {
     const items = await RestockQueue.find({
+      user: getDataOwner(req),
       resolved: false,
     })
       .populate("product", "name category price stockQuantity minStockThreshold status")
@@ -30,6 +32,7 @@ exports.restockProduct = async (req, res) => {
 
     const queueItem = await RestockQueue.findOne({
       _id: req.params.id,
+      user: getDataOwner(req),
       resolved: false,
     });
 

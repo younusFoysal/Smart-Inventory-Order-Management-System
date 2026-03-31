@@ -2,6 +2,7 @@ const Order = require("../models/Order");
 const Product = require("../models/Product");
 const RestockQueue = require("../models/RestockQueue");
 const logActivity = require("../utils/logActivity");
+const getDataOwner = require("../utils/getDataOwner");
 
 // Valid status transitions
 const validTransitions = {
@@ -30,8 +31,10 @@ exports.createOrder = async (req, res) => {
     }
 
     // Fetch all products and validate
+    const dataOwner = getDataOwner(req);
     const products = await Product.find({
       _id: { $in: productIds },
+      user: dataOwner,
     });
 
     if (products.length !== productIds.length) {
@@ -97,7 +100,7 @@ exports.createOrder = async (req, res) => {
             currentStock: product.stockQuantity,
             threshold: product.minStockThreshold,
             priority: RestockQueue.calcPriority(product.stockQuantity, product.minStockThreshold),
-            user: req.user._id,
+            user: dataOwner,
           });
         } else {
           existing.currentStock = product.stockQuantity;
@@ -112,7 +115,7 @@ exports.createOrder = async (req, res) => {
       customerName: customerName.trim(),
       items: orderItems,
       totalPrice,
-      user: req.user._id,
+      user: dataOwner,
     });
 
     logActivity(`Order ${order.orderNumber} created for ${customerName.trim()}`, "order", req.user._id);
@@ -128,7 +131,7 @@ exports.createOrder = async (req, res) => {
 exports.getOrders = async (req, res) => {
   try {
     const { status, startDate, endDate } = req.query;
-    const filter = {};
+    const filter = { user: getDataOwner(req) };
 
     if (status) {
       filter.status = status;
@@ -155,8 +158,10 @@ exports.getOrders = async (req, res) => {
 // @route   GET /api/orders/:id
 exports.getOrder = async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id)
-      .populate("items.product", "name stockQuantity status");
+    const order = await Order.findOne({
+      _id: req.params.id,
+      user: getDataOwner(req),
+    }).populate("items.product", "name stockQuantity status");
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
@@ -173,7 +178,10 @@ exports.getOrder = async (req, res) => {
 exports.updateOrderStatus = async (req, res) => {
   try {
     const { status } = req.body;
-    const order = await Order.findById(req.params.id);
+    const order = await Order.findOne({
+      _id: req.params.id,
+      user: getDataOwner(req),
+    });
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });

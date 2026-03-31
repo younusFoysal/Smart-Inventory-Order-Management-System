@@ -36,14 +36,14 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     const data = await loginUser(credentials);
     localStorage.setItem("token", data.token);
-    setUser({ _id: data._id, name: data.name, email: data.email, role: data.role });
+    setUser({ _id: data._id, name: data.name, email: data.email, role: data.role, assignedAdmin: data.assignedAdmin });
     return data;
   };
 
   const register = async (userData) => {
     const data = await registerUser(userData);
     localStorage.setItem("token", data.token);
-    setUser({ _id: data._id, name: data.name, email: data.email, role: data.role });
+    setUser({ _id: data._id, name: data.name, email: data.email, role: data.role, assignedAdmin: data.assignedAdmin });
     return data;
   };
 

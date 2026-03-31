@@ -15,6 +15,7 @@ import {
   X,
   Box,
   Users,
+  Mail,
 } from "lucide-react";
 
 const navItems = [
@@ -24,6 +25,7 @@ const navItems = [
   { to: "/orders", label: "Orders", icon: ClipboardList },
   { to: "/restock", label: "Restock Queue", icon: AlertTriangle },
   { to: "/users", label: "Users", icon: Users, adminOnly: true },
+  { to: "/requests", label: "Requests", icon: Mail },
 ];
 
 const DashboardLayout = () => {
@@ -54,7 +56,7 @@ const DashboardLayout = () => {
       >
         <div className="h-full flex flex-col">
           {/* Logo */}
-          <div className="flex items-center justify-between px-5 py-4">
+          <div className="flex items-center justify-between px-5 py-3">
             <div className="flex items-center gap-2.5">
               <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
                 <Box className="h-4 w-4 text-primary-foreground" />
